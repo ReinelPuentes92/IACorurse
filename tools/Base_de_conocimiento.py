@@ -19,12 +19,12 @@ load_dotenv(find_dotenv())
 # CONFIGURACIÓN DE SUPABASE
 # ============================================
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+SUPABASE_KEY = os.getenv("SUPABASE_SECRET_KEY")
 
 if not all([SUPABASE_URL, SUPABASE_KEY]):
     raise ValueError(
         "❌ Faltan variables de Supabase en .env\n"
-        "Requeridas: SUPABASE_URL, SUPABASE_SERVICE_KEY"
+        "Requeridas: SUPABASE_URL, SUPABASE_SECRET_KEY"
     )
 
 supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
