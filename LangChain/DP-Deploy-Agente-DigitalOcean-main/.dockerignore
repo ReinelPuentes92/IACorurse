@@ -1,0 +1,36 @@
+# Secrets y variables de entorno
+.env
+.env.*
+*.env
+
+# Caché de Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Control de versiones
+.git/
+.gitignore
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Jupyter Notebooks
+.ipynb_checkpoints/

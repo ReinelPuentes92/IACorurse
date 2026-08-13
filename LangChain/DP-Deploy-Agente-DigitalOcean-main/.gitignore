@@ -1,0 +1,20 @@
+# Entorno y secretos
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# macOS
+.DS_Store
+
+# Editores / herramientas
+.vscode/
+.idea/
+.claude/settings.local.json

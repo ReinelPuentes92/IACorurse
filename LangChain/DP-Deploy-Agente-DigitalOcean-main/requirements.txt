@@ -1,0 +1,53 @@
+# ============================================
+# Requirements - Agentes IA con LangChain v1.0
+# Autor: Ing. Kevin Inofuente Colque - DataPath
+# ============================================
+
+# Jupyter Notebooks
+ipykernel
+
+# ============================================
+# LANGCHAIN v1.0
+# ============================================
+langchain>=1.0.0
+langchain-openai          # Modelos OpenAI (GPT-4.1)
+langchain-community       # Tools y utilidades comunitarias
+
+# ============================================
+# HISTÓRICO DE CONVERSACIÓN (PostgreSQL)
+# ============================================
+langchain-postgres        # PostgresChatMessageHistory
+psycopg[binary]           # Driver PostgreSQL v3
+
+# ============================================
+# BASE DE CONOCIMIENTO (RAG con Supabase)
+# ============================================
+supabase>=1.0.0           # Cliente de Supabase
+numpy                     # Cálculo de similitud coseno
+
+# ============================================
+# TOOLS
+# ============================================
+langchain-tavily          # Búsqueda en internet (Tavily) - Nueva API
+tavily-python             # Cliente base de Tavily
+
+# ============================================
+# WEB SERVER (Chatwoot Integration)
+# ============================================
+fastapi                   # Framework web
+uvicorn                   # Servidor ASGI
+requests                  # HTTP client
+
+# ============================================
+# UTILIDADES
+# ============================================
+python-dotenv             # Variables de entorno (.env)
+
+# ============================================
+# OPCIONAL - Para notebooks y otros proyectos
+# ============================================
+# pypdf>=3.0.0            # Loader de PDFs
+# faiss-cpu               # Vector store local
+# chromadb                # Vector store ChromaDB
+# transformers            # Modelos Hugging Face
+# torch                   # PyTorch
