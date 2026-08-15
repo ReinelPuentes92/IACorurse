@@ -42,6 +42,7 @@ requests                  # HTTP client
 # UTILIDADES
 # ============================================
 python-dotenv             # Variables de entorno (.env)
+pyyaml                    # Carga del system prompt (prompt/prompt.yaml)
 
 # ============================================
 # OPCIONAL - Para notebooks y otros proyectos

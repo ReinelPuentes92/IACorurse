@@ -11,9 +11,11 @@ import os
 import sys
 import uuid
 from datetime import datetime
+from pathlib import Path
 from urllib.parse import quote_plus
 from zoneinfo import ZoneInfo
 
+import yaml
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
@@ -54,7 +56,7 @@ print(f"🔌 Conectando como: {DB_USER}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
 # 2. LISTA DE TOOLS DISPONIBLES
 # ============================================
 tools = [
-    buscar_informacion_tramites,      # Base de conocimiento DATAPATH
+    buscar_informacion_tramites,      # Manual de Trámites de Girardota
     buscar_internet,      # Búsqueda en internet (Tavily)
     obtener_fecha_hora,   # Fecha y hora actual por zona horaria
 ]
@@ -66,9 +68,14 @@ chat = init_chat_model("gpt-4.1", temperature=0.7) #gpt-o4-mini
 chat_con_tools = chat.bind_tools(tools)
 
 # ============================================
-# 4. PROMPT DEL AGENTE + CONTEXTO FECHA/HORA
+# 4. PROMPT DEL AGENTE (YAML) + CONTEXTO FECHA/HORA
 # ============================================
-AGENT_TIMEZONE = os.getenv("AGENT_TIMEZONE", "America/Lima")
+AGENT_TIMEZONE = os.getenv("AGENT_TIMEZONE", "America/Bogota")
+BOT_NAME = os.getenv("BOT_NAME", "Asistente Virtual de Girardota")
+
+# El system prompt vive en YAML, no hardcodeado aquí: se versiona y se edita
+# sin tocar el código.
+PROMPT_PATH = Path(__file__).parent / "prompt" / "prompt.yaml"
 
 
 def _contexto_fecha_hora() -> str:
@@ -76,43 +83,51 @@ def _contexto_fecha_hora() -> str:
     try:
         tz = ZoneInfo(AGENT_TIMEZONE)
     except Exception:
-        tz = ZoneInfo("America/Lima")
+        tz = ZoneInfo("America/Bogota")
     now = datetime.now(tz)
     return now.strftime("%Y-%m-%d %H:%M:%S") + f" (zona {AGENT_TIMEZONE})"
 
 
-system_prompt = """
-<Rol>
-Eres DataBot, un asistente de IA de DATAPATH con acceso a internet.
-</Rol>
+def _cargar_prompt(ruta: Path) -> dict:
+    """
+    Carga el YAML del system prompt.
 
-<Objetivo>
-Tu objetivo es ayudar a los usuarios respondiendo sus preguntas usando las herramientas disponibles.
-</Objetivo>
+    Falla en el arranque, no en mitad de una conversación: un prompt ausente o
+    mal formado deja al agente sin instrucciones y respondiendo cualquier cosa.
+    """
+    if not ruta.exists():
+        raise FileNotFoundError(
+            f"❌ No se encontró el system prompt en {ruta}\n"
+            "   Debe existir prompt/prompt.yaml junto al agente."
+        )
 
-Al inicio de cada turno se te indica la FECHA Y HORA ACTUAL; úsala siempre que la respuesta dependa de "hoy", "ahora", "esta semana", horarios o plazos. Para otras zonas horarias usa la tool obtener_fecha_hora.
+    with open(ruta, "r", encoding="utf-8") as archivo:
+        cfg = yaml.safe_load(archivo)
 
-<Herramientas Disponibles>
-1. buscar_datapath: Para información sobre DATAPATH (programas, cursos, precios, docentes)
-2. buscar_internet: Para información actualizada de internet (noticias, eventos, datos actuales)
-3. obtener_fecha_hora: Para la fecha y hora actual (por defecto zona del agente; opcional otra zona, ej. America/Lima, Europe/Madrid)
-</Herramientas Disponibles
+    if not cfg or not cfg.get("system_prompt"):
+        raise ValueError(f"❌ {ruta} no contiene la clave 'system_prompt'")
 
-INSTRUCCIONES:
-- Para preguntas sobre DATAPATH → USA buscar_datapath
-- Para preguntas sobre eventos actuales, noticias, o información general → USA buscar_internet
-- Para "qué hora es", "qué día es", "fecha actual" en tu zona → Puedes usar la FECHA Y HORA ACTUAL del contexto; para otra zona → USA obtener_fecha_hora
-- Para saludos, agradecimientos o conversación general → Responde directamente SIN herramientas
-- Puedes usar varias herramientas si la pregunta lo requiere
-- Recuerdas toda la conversación gracias a tu memoria persistente
-- Responde siempre en español de manera clara y amigable
+    return cfg
 
-EJEMPLOS:
-- "Hola" → Responde directamente
-- "¿Qué cursos tienen?" → Usa buscar_datapath
-- "¿Qué pasó hoy en las noticias?" → Usa buscar_internet
-- "¿Qué hora es?" o "¿Qué día es hoy?" → Usa obtener_fecha_hora
-- "¿Cómo se compara su curso de IA con las tendencias actuales?" → Usa AMBAS tools (buscar_datapath + buscar_internet)"""
+
+_prompt_cfg = _cargar_prompt(PROMPT_PATH)
+_SYSTEM_PROMPT_TEMPLATE = _prompt_cfg["system_prompt"]
+
+print(f"📝 Prompt: {_prompt_cfg.get('name')} v{_prompt_cfg.get('version')}")
+
+
+def render_system_prompt() -> str:
+    """
+    Renderiza el system prompt inyectando los placeholders declarados en el YAML.
+
+    Se renderiza en CADA turno para que la fecha y hora nunca queden congeladas
+    en el arranque del proceso.
+    """
+    return (
+        _SYSTEM_PROMPT_TEMPLATE
+        .replace("{bot_name}", BOT_NAME)
+        .replace("{fecha_hora_actual}", _contexto_fecha_hora())
+    )
 
 # ============================================
 # 5. CREAR TABLA DE HISTORIAL
@@ -151,11 +166,7 @@ def chat_con_agente(mensaje_usuario: str, session_id: str) -> str:
     mensajes_previos = history.messages
     
     # Construir mensajes para el modelo (inyectamos fecha/hora actual en cada turno)
-    system_content = (
-        system_prompt
-        + "\n\n---\nFECHA Y HORA ACTUAL (referencia para este turno): "
-        + _contexto_fecha_hora()
-    )
+    system_content = render_system_prompt()
     messages = [{"role": "system", "content": system_content}]
     
     # Agregar historial
@@ -242,7 +253,7 @@ def main():
     
     print(f"\n📝 Session ID: {session_id}")
     print("   (Guarda este ID para continuar después)")
-    print("✅ El agente puede buscar en DATAPATH y en INTERNET")
+    print("✅ El agente puede buscar en el Manual de Trámites y en INTERNET")
     print("Escribe 'salir' para volver al menú.\n")
     
     while True:

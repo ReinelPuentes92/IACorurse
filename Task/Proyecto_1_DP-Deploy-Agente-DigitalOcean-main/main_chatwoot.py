@@ -6,6 +6,7 @@ Autor: Ing. Kevin Inofuente Colque - DataPath
 """
 
 import os
+import re
 import sys
 import uuid
 import requests
@@ -49,6 +50,61 @@ CHATWOOT_API_TOKEN = os.getenv("CHATWOOT_API_ACCESS_TOKEN")
 BOT_LABEL = os.getenv("CHATWOOT_BOT_LABEL", "atiende-ia")
 # Etiqueta que desactiva la IA: si el usuario/conversación tiene "ia-off", el agente NO responde
 TAG_IA_OFF = "ia-off"
+
+# ============================================
+# DETECCIÓN DE TRANSFERENCIA A HUMANO
+# ============================================
+# La transferencia solo se activa si el usuario la PIDE EXPLÍCITAMENTE.
+# Ante cualquier otra consulta responde el agente.
+#
+# No basta con que aparezca una palabra como "persona" o "agente": en un bot de
+# trámites esas palabras son constantes ("¿puedo ir en representación de otra
+# persona?", "¿qué agente de la secretaría atiende esto?"). Por eso se exige
+# un verbo de intención acompañado de una referencia a atención humana.
+
+# Referencias a una persona que atiende (no a una persona cualquiera).
+_REF_HUMANO = (
+    r"(humano|humana|persona real|asesor|asesora|representante|"
+    r"operador|operadora|funcionario|funcionaria|alguien|"
+    r"agente humano|un agente|una persona|otra persona)"
+)
+
+# Verbos que expresan la intención de ser atendido por alguien.
+_VERBO_INTENCION = (
+    r"(hablar|habla|comunicarme|comunicar|contactar|contactarme|"
+    r"derivar|derivarme|transferir|transferirme|pasarme|"
+    r"atienda|atiendan|atienden|quiero|necesito|deseo|"
+    r"me gustaria|me gustaría|prefiero)"
+)
+
+HUMAN_HANDOFF_PATTERNS = [
+    # Verbo de intención + referencia humana en la misma frase (ventana corta
+    # para no cruzar oraciones; ¿ ! . ? cortan la ventana).
+    rf"\b{_VERBO_INTENCION}\b[^.?!¿¡]{{0,25}}\b{_REF_HUMANO}\b",
+    # Frases inequívocas que no necesitan verbo.
+    r"\batenci(o|ó)n (humana|personalizada|de una persona)\b",
+    r"\bcon un(a)? (humano|humana|asesor|asesora|persona real|representante)\b",
+    # Rechazo explícito del bot.
+    r"\bno (quiero|deseo) (hablar con )?(un(a)? )?(bot|robot|m(a|á)quina|"
+    r"ia\b|inteligencia artificial)",
+]
+
+_HANDOFF_REGEX = [re.compile(p, re.IGNORECASE) for p in HUMAN_HANDOFF_PATTERNS]
+
+
+def solicita_humano(texto: str) -> bool:
+    """
+    True solo si el usuario pide EXPLÍCITAMENTE hablar con una persona.
+
+    Args:
+        texto: Mensaje del usuario
+
+    Returns:
+        True si hay una petición explícita de atención humana
+    """
+    if not texto:
+        return False
+    return any(rx.search(texto) for rx in _HANDOFF_REGEX)
 
 if not all([CHATWOOT_BASE_URL, CHATWOOT_ACCOUNT_ID, CHATWOOT_API_TOKEN]):
     print("⚠️  ADVERTENCIA: Faltan variables de Chatwoot en .env")
@@ -178,10 +234,9 @@ async def chatwoot_webhook(request: Request):
     
     print(f"   📝 Mensaje: {message_content[:100]}...")
     
-    # Detectar si el usuario quiere hablar con un humano
-    human_keywords = ['humano', 'persona', 'asesor', 'agente', 'representante', 'hablar con alguien']
-    if any(keyword in message_content.lower() for keyword in human_keywords):
-        print(f"   🗣️ Transferencia a humano detectada")
+    # Transferir solo si el usuario lo pide explícitamente; si no, responde el agente
+    if solicita_humano(message_content):
+        print(f"   🗣️ Transferencia a humano detectada (petición explícita)")
         
         # Actualizar etiquetas
         new_labels = [l for l in labels if l != BOT_LABEL]
@@ -226,11 +281,11 @@ async def chatwoot_webhook(request: Request):
 def read_root():
     """Endpoint raíz con información del servicio."""
     return {
-        "service": "DataBot - Agente IA",
+        "service": "Asistente Virtual de Girardota",
         "version": "1.0.0",
-        "agent": "Agente D (RAG + Internet + Memoria)",
+        "agent": "Trámites municipales (RAG + Internet + Memoria)",
         "model": "GPT-4.1",
-        "tools": ["buscar_datapath", "buscar_internet", "obtener_fecha_hora"],
+        "tools": ["buscar_informacion_tramites", "buscar_internet", "obtener_fecha_hora"],
         "chatwoot_configured": all([CHATWOOT_BASE_URL, CHATWOOT_ACCOUNT_ID, CHATWOOT_API_TOKEN]),
         "bot_label": BOT_LABEL,
         "status": "ready"
@@ -289,11 +344,11 @@ async def test_agent(request: Request):
 if __name__ == "__main__":
     print()
     print("=" * 60)
-    print("🚀 INICIANDO DATABOT CON CHATWOOT")
+    print("🚀 INICIANDO ASISTENTE DE TRÁMITES CON CHATWOOT")
     print("=" * 60)
-    print(f"🤖 Agente: D (RAG + Internet + Memoria)")
+    print(f"🤖 Agente: Trámites Girardota (RAG + Internet + Memoria)")
     print(f"🧠 Modelo: GPT-4.1")
-    print(f"🔧 Tools: buscar_datapath, buscar_internet, obtener_fecha_hora")
+    print(f"🔧 Tools: buscar_informacion_tramites, buscar_internet, obtener_fecha_hora")
     print(f"💾 Historial: PostgreSQL")
     print(f"🏷️  Etiqueta bot (handoff): {BOT_LABEL or 'ninguna'}")
     print(f"🚫 No responde si tiene tag: {TAG_IA_OFF}")

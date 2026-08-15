@@ -42,11 +42,11 @@ def buscar_internet(consulta: str) -> str:
     Usa esta herramienta cuando el usuario pregunte sobre:
     - Eventos actuales o noticias recientes
     - Información que cambia frecuentemente
-    - Datos que no están en la base de conocimientos de DATAPATH
+    - Normativa nacional o información de otras entidades del Estado
     - Cualquier tema que requiera información actualizada de internet
-    
+
     NO uses esta herramienta para:
-    - Preguntas sobre DATAPATH (usa buscar_datapath)
+    - Trámites del Municipio de Girardota (usa buscar_informacion_tramites)
     - Saludos o conversación general
     
     Args:

@@ -1,6 +1,6 @@
 """
 Tool: Base de Conocimiento (RAG con Supabase)
-Permite buscar información en la base de conocimientos de DATAPATH.
+Permite buscar en el Manual de Trámites del Municipio de Girardota.
 
 Autor: Ing. Kevin Inofuente Colque - DataPath
 """
