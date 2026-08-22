@@ -1,0 +1,15 @@
+langchain>=1.0.0
+langchain-openai
+langgraph>=1.0.0
+langgraph-checkpoint-postgres
+psycopg[binary]
+numpy
+openai
+openai-whisper
+pandas
+pynput
+python-dotenv
+pyyaml
+sounddevice
+soundfile
+tabulate

@@ -1,0 +1,15 @@
+# Secretos
+.env
+
+# Audio temporal
+*.wav
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# macOS
+.DS_Store
