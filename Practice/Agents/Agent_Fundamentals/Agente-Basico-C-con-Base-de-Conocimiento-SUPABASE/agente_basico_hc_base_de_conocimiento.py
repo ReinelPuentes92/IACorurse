@@ -1,8 +1,8 @@
 """
-Agente IA Completo: Base de Conocimiento + Internet + Histórico
-- Tool 1: Base de Conocimiento (RAG con Supabase)
-- Tool 2: Búsqueda en Internet (Tavily)
+Agente IA con Tools + Histórico de Conversación
+- RAG como Tool: El LLM decide cuándo buscar en la base de conocimiento
 - Histórico: Guarda conversaciones en PostgreSQL
+- Extensible: Fácil agregar más Tools
 
 Autor: Ing. Kevin Inofuente Colque - DataPath
 """
@@ -10,10 +10,7 @@ Autor: Ing. Kevin Inofuente Colque - DataPath
 import os
 import sys
 import uuid
-from datetime import datetime
 from urllib.parse import quote_plus
-from zoneinfo import ZoneInfo
-
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
@@ -27,9 +24,7 @@ from langchain_postgres import PostgresChatMessageHistory
 import psycopg
 
 # Importar tools desde la carpeta tools/
-from tools.Base_de_conocimiento import buscar_informacion_tramites
-from tools.Busqueda_internet import buscar_internet
-from tools.Hora_y_fecha import obtener_fecha_hora
+from Practice.Agents.Agent_Fundamentals.tools.Base_de_conocimiento import buscar_informacion_tramites
 
 # ============================================
 # 1. CONFIGURACIÓN DE BASE DE DATOS (Histórico)
@@ -53,66 +48,101 @@ print(f"🔌 Conectando como: {DB_USER}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
 # ============================================
 # 2. LISTA DE TOOLS DISPONIBLES
 # ============================================
+# Agregar aquí todas las tools que quieras usar
 tools = [
-    buscar_informacion_tramites,      # Base de conocimiento DATAPATH
-    buscar_internet,      # Búsqueda en internet (Tavily)
-    obtener_fecha_hora,   # Fecha y hora actual por zona horaria
+    buscar_informacion_tramites,
 ]
 
 # ============================================
 # 3. CONFIGURACIÓN DEL MODELO CON TOOLS
 # ============================================
-chat = init_chat_model("gpt-4.1", temperature=0.7) #gpt-o4-mini
+chat = init_chat_model("gpt-4.1", temperature=0.7)
 chat_con_tools = chat.bind_tools(tools)
 
 # ============================================
-# 4. PROMPT DEL AGENTE + CONTEXTO FECHA/HORA
+# 4. PROMPT DEL AGENTE
 # ============================================
-AGENT_TIMEZONE = os.getenv("AGENT_TIMEZONE", "America/Lima")
+system_prompt = """<system_prompt>
+  <identity>
+    <name>Sofía</name>
+    <role>Asistente Virtual experta en atención al ciudadano</role>
+    <organization>Municipio de Girardota</organization>
+    <nature>Sistema de inteligencia artificial</nature>
+    <tone>Empático, claro, servicial y profesional</tone>
+  </identity>
 
+  <objective>
+    Orientar a los usuarios respondiendo sus consultas sobre trámites administrativos,
+    impuestos, certificados y servicios del municipio, basándote ÚNICAMENTE en la base
+    de conocimiento oficial proporcionada.
+  </objective>
 
-def _contexto_fecha_hora() -> str:
-    """Fecha y hora actual para inyectar en el system prompt (cada turno)."""
-    try:
-        tz = ZoneInfo(AGENT_TIMEZONE)
-    except Exception:
-        tz = ZoneInfo("America/Lima")
-    now = datetime.now(tz)
-    return now.strftime("%Y-%m-%d %H:%M:%S") + f" (zona {AGENT_TIMEZONE})"
+  <core_rules>
+    <rule id="1" name="uso_estricto_de_herramienta">
+      Para CUALQUIER pregunta relacionada con requisitos, costos, cuentas bancarias,
+      tiempos de respuesta o procedimientos de la Alcaldía, DEBES invocar la herramienta
+      <tool>buscar_informacion_tramites</tool>.
+    </rule>
 
+    <rule id="2" name="cero_alucinaciones">
+      Si la herramienta no devuelve la información solicitada, o el trámite consultado
+      no existe en la base de datos, informa amablemente que no dispones de esos datos
+      precisos. NUNCA inventes requisitos, tarifas ni nombres de formularios.
+    </rule>
 
-system_prompt = """
-<Rol>
-Eres DataBot, un asistente de IA de DATAPATH con acceso a internet.
-</Rol>
+    <rule id="3" name="estructura_de_respuesta">
+      Al detallar un trámite, organiza la información así:
+      - Requisitos: listas con viñetas (bullet points).
+      - Tiempo de obtención: mención obligatoria.
+      - Costo asociado: mención obligatoria si aplica.
+    </rule>
 
-<Objetivo>
-Tu objetivo es ayudar a los usuarios respondiendo sus preguntas usando las herramientas disponibles.
-</Objetivo>
+    <rule id="4" name="conversacion_general">
+      Para saludos, despedidas, agradecimientos o charla general, responde directamente
+      SIN invocar herramientas, de forma natural y concisa. Recuerdas toda la
+      conversación gracias a tu memoria persistente.
+    </rule>
+  </core_rules>
 
-Al inicio de cada turno se te indica la FECHA Y HORA ACTUAL; úsala siempre que la respuesta dependa de "hoy", "ahora", "esta semana", horarios o plazos. Para otras zonas horarias usa la tool obtener_fecha_hora.
+  <tool_usage_guide>
+    <no_usar_herramienta label="Casos donde NO se usa la herramienta">
+      <example>
+        <user>Hola, buenos días</user>
+        <sofia>¡Buenos días! Soy Sofía, tu asistente virtual. ¿En qué trámite del
+        Municipio de Girardota te puedo ayudar hoy?</sofia>
+      </example>
+      <example>
+        <user>Muchas gracias por la ayuda</user>
+        <sofia>¡Con mucho gusto! Quedo a tu disposición si necesitas hacer alguna
+        otra consulta.</sofia>
+      </example>
+      <example>
+        <user>¿Eres humana?</user>
+        <sofia>Soy una inteligencia artificial diseñada para ayudarte con tus
+        trámites municipales.</sofia>
+      </example>
+    </no_usar_herramienta>
 
-<Herramientas Disponibles>
-1. buscar_datapath: Para información sobre DATAPATH (programas, cursos, precios, docentes)
-2. buscar_internet: Para información actualizada de internet (noticias, eventos, datos actuales)
-3. obtener_fecha_hora: Para la fecha y hora actual (por defecto zona del agente; opcional otra zona, ej. America/Lima, Europe/Madrid)
-</Herramientas Disponibles
-
-INSTRUCCIONES:
-- Para preguntas sobre DATAPATH → USA buscar_datapath
-- Para preguntas sobre eventos actuales, noticias, o información general → USA buscar_internet
-- Para "qué hora es", "qué día es", "fecha actual" en tu zona → Puedes usar la FECHA Y HORA ACTUAL del contexto; para otra zona → USA obtener_fecha_hora
-- Para saludos, agradecimientos o conversación general → Responde directamente SIN herramientas
-- Puedes usar varias herramientas si la pregunta lo requiere
-- Recuerdas toda la conversación gracias a tu memoria persistente
-- Responde siempre en español de manera clara y amigable
-
-EJEMPLOS:
-- "Hola" → Responde directamente
-- "¿Qué cursos tienen?" → Usa buscar_datapath
-- "¿Qué pasó hoy en las noticias?" → Usa buscar_internet
-- "¿Qué hora es?" o "¿Qué día es hoy?" → Usa obtener_fecha_hora
-- "¿Cómo se compara su curso de IA con las tendencias actuales?" → Usa AMBAS tools (buscar_datapath + buscar_internet)"""
+    <sí_usar_herramienta label="Casos donde SÍ se usa la herramienta: buscar_informacion_tramites">
+      <example>
+        <user>¿Qué documentos necesito para el certificado de estratificación?</user>
+        <action>Invocar buscar_informacion_tramites</action>
+      </example>
+      <example>
+        <user>¿En qué bancos puedo pagar el impuesto de delineación urbana?</user>
+        <action>Invocar buscar_informacion_tramites</action>
+      </example>
+      <example>
+        <user>¿Cómo registro un perro potencialmente peligroso?</user>
+        <action>Invocar buscar_informacion_tramites</action>
+      </example>
+      <example>
+        <user>¿Cuánto se demora la licencia para intervenir el espacio público?</user>
+        <action>Invocar buscar_informacion_tramites</action>
+      </example>
+    </sí_usar_herramienta>
+  </tool_usage_guide>
+</system_prompt> """
 
 # ============================================
 # 5. CREAR TABLA DE HISTORIAL
@@ -120,7 +150,7 @@ EJEMPLOS:
 def crear_tabla_historial():
     try:
         sync_connection = psycopg.connect(DATABASE_URL)
-        PostgresChatMessageHistory.create_tables(sync_connection, "chat_history")
+        PostgresChatMessageHistory.create_tables(sync_connection, "chat_history_usuarios_consultas")
         sync_connection.close()
     except Exception as e:
         print(f"⚠️ Nota sobre tabla: {e}")
@@ -133,7 +163,7 @@ crear_tabla_historial()
 def get_session_history(session_id: str) -> PostgresChatMessageHistory:
     sync_connection = psycopg.connect(DATABASE_URL)
     return PostgresChatMessageHistory(
-        "chat_history",
+        "chat_history_usuarios_consultas",
         session_id,
         sync_connection=sync_connection
     )
@@ -150,13 +180,8 @@ def chat_con_agente(mensaje_usuario: str, session_id: str) -> str:
     history = get_session_history(session_id)
     mensajes_previos = history.messages
     
-    # Construir mensajes para el modelo (inyectamos fecha/hora actual en cada turno)
-    system_content = (
-        system_prompt
-        + "\n\n---\nFECHA Y HORA ACTUAL (referencia para este turno): "
-        + _contexto_fecha_hora()
-    )
-    messages = [{"role": "system", "content": system_content}]
+    # Construir mensajes para el modelo
+    messages = [{"role": "system", "content": system_prompt}]
     
     # Agregar historial
     for msg in mensajes_previos:
@@ -216,7 +241,7 @@ def chat_con_agente(mensaje_usuario: str, session_id: str) -> str:
 # ============================================
 def main():
     print("=" * 60)
-    print("🤖 DataBot - Agente COMPLETO (BC + Internet + Memoria)")
+    print("🤖 DataBot - Agente con TOOLS + MEMORIA PERSISTENTE")
     print("=" * 60)
     print("🔧 Tools disponibles:")
     for t in tools:
@@ -242,7 +267,7 @@ def main():
     
     print(f"\n📝 Session ID: {session_id}")
     print("   (Guarda este ID para continuar después)")
-    print("✅ El agente puede buscar en DATAPATH y en INTERNET")
+    print("✅ El agente DECIDE cuándo buscar en la base de conocimiento")
     print("Escribe 'salir' para volver al menú.\n")
     
     while True:
