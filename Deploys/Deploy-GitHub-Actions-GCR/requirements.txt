@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+debugpy
+pandas
+scikit-learn
+joblib
+feature-engine
+python-multipart
+streamlit
+matplotlib
