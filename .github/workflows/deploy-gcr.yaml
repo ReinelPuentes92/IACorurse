@@ -6,6 +6,7 @@ env:
   DOCKER_IMAGE_URL: us-central1-docker.pkg.dev/ia-poc-iktan-services-506415/repositorio-streamlit-oikos/imagen-deploy-streamlit-oikos
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
