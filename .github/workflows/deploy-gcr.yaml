@@ -12,6 +12,10 @@ jobs:
   dockerize-and-deploy:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: ./Deploys/Deploy-GitHub-Actions-GCR
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2

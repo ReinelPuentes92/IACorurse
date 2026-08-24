@@ -14,5 +14,5 @@ on:
 
 jobs:
   call-cicd:
-    uses: ./Deploys/Deploy-GitHub-Actions-GCR/.github/workflows/cicd.yaml
+    uses: ./.github/workflows/deploy-gcr-reusable.yaml
     secrets: inherit
