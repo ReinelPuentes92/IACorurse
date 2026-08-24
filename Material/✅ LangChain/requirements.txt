@@ -1,0 +1,63 @@
+# ============================================
+# Requirements - Agentes IA con LangChain v1.0
+# Autor: Ing. Kevin Inofuente Colque - DataPath
+# ============================================
+
+# Jupyter Notebooks
+ipykernel==7.2.0
+
+# ============================================
+# LANGCHAIN v1.x (estable más reciente)
+# ============================================
+langchain==1.2.18
+langchain-core==1.4.0              # Núcleo (lo arrastran los sub-paquetes; lo fijamos por reproducibilidad)
+langchain-openai==1.2.1            # Modelos OpenAI (GPT-4.1)
+langchain-google-genai==4.2.2      # Modelos de Google (Gemini)
+langchain-community==0.4.1         # Tools y utilidades comunitarias
+langchain-text-splitters==1.1.2    # RecursiveCharacterTextSplitter y otros splitters
+
+# ============================================
+# HISTÓRICO DE CONVERSACIÓN (PostgreSQL)
+# ============================================
+langchain-postgres==0.0.17         # PostgresChatMessageHistory
+psycopg[binary]==3.3.4             # Driver PostgreSQL v3
+
+# ============================================
+# BASE DE CONOCIMIENTO (RAG con Supabase)
+# ============================================
+supabase==2.30.0                   # Cliente de Supabase
+numpy==2.4.4                       # Cálculo de similitud coseno
+
+# ============================================
+# BASE DE CONOCIMIENTO (RAG con Pinecone)
+# ============================================
+langchain-pinecone==0.2.13         # Integración LangChain + Pinecone (requiere pinecone <8.0.0)
+pinecone==7.3.0                    # Cliente Pinecone (última estable compatible con langchain-pinecone 0.2.13)
+pypdf==6.11.0                      # Loader de PDFs (PyPDFLoader)
+
+# ============================================
+# TOOLS
+# ============================================
+langchain-tavily==0.2.18           # Búsqueda en internet (Tavily) - Nueva API
+tavily-python==0.7.24              # Cliente base de Tavily
+
+# ============================================
+# WEB SERVER (Chatwoot Integration)
+# ============================================
+fastapi==0.136.1                   # Framework web
+uvicorn==0.46.0                    # Servidor ASGI
+requests==2.34.0                   # HTTP client
+
+# ============================================
+# UTILIDADES
+# ============================================
+python-dotenv==1.2.2               # Variables de entorno (.env)
+
+# ============================================
+# OPCIONAL - Para notebooks y otros proyectos
+# ============================================
+# pypdf>=3.0.0            # Loader de PDFs
+# faiss-cpu               # Vector store local
+# chromadb                # Vector store ChromaDB
+# transformers            # Modelos Hugging Face
+# torch                   # PyTorch
