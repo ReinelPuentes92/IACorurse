@@ -5,14 +5,14 @@ on:
     branches:
       - main
     paths:
-      - 'deploys/Deploy-GitHub-Actions-GCR/**'
+      - 'Deploys/Deploy-GitHub-Actions-GCR/**'
   pull_request:
     branches:
       - main
     paths:
-      - 'deploys/Deploy-GitHub-Actions-GCR/**'
+      - 'Deploys/Deploy-GitHub-Actions-GCR/**'
 
 jobs:
   call-cicd:
-    uses: ./deploys/Deploy-GitHub-Actions-GCR/.github/workflows/cicd.yaml
+    uses: ./Deploys/Deploy-GitHub-Actions-GCR/.github/workflows/cicd.yaml
     secrets: inherit
