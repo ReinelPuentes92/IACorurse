@@ -1,9 +1,9 @@
 name: Deploy to Cloud Run
 
 env:
-  SERVICE_NAME: servicio-streamlit-modelo-de-ml-clasico
-  PROJECT_ID: datapath-ai17-kevin-inofuente
-  DOCKER_IMAGE_URL: us-central1-docker.pkg.dev/datapath-ai17-kevin-inofuente/repositorio-streamlit-regresion-casas/imagen-deploy-streamlit-cicd
+  SERVICE_NAME: servicio-streamlit-modelo-de-ml-oikos
+  PROJECT_ID: ia-poc-iktan-services-506415
+  DOCKER_IMAGE_URL: us-central1-docker.pkg.dev/ia-poc-iktan-services-506415/repositorio-streamlit-oikos/imagen-deploy-streamlit-oikos
 
 on:
   push:
@@ -47,4 +47,4 @@ jobs:
             --platform managed \
             --region us-central1 \
             --allow-unauthenticated \
-            --service-account=deploy-langchain-agente-inmobi@datapath-ai17-kevin-inofuente.iam.gserviceaccount.com
+            --service-account=iktan-deploy-gcp@ia-poc-iktan-services-506415.iam.gserviceaccount.com
